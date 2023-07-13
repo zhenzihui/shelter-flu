@@ -25,6 +25,12 @@ class PieChartsPainter extends CustomPainter {
   //绘制线条的宽度
   final double _strokeWidth = 35;
 
+  //计算得出的中心点
+  late Offset _center;
+
+  //计算得出的半径
+  late double _radius;
+
   //圆的半径
   double calRadius(Size size) => math.min(size.width, size.height) / 3;
 
@@ -38,16 +44,14 @@ class PieChartsPainter extends CustomPainter {
   double getSweepAngle(double flex) =>
       _totalAngle * progress * getPercentOfTotal(flex);
 
-  double distanceToCenter(Offset offset, Size size) {
-    final center = getCenter(size);
-    return math.sqrt(math.pow(offset.dx - center.dx, 2) +
-        math.pow(offset.dy - center.dy, 2));
+  double distanceToCenter(Offset offset) {
+    return math.sqrt(math.pow(offset.dx - _center.dx, 2) +
+        math.pow(offset.dy - _center.dy, 2));
   }
 
-  bool isInRange(double distance, Size size) {
+  bool isInRange(double distance) {
     final stroke = _strokeWidth / 2;
-    return calRadius(size) - stroke < distance &&
-        calRadius(size) + stroke > distance;
+    return _radius - stroke < distance && _radius + stroke > distance;
   }
 
   PiePart? getTappedAngleData(Size size) {
@@ -60,7 +64,7 @@ class PieChartsPainter extends CustomPainter {
       // debugPrint("${data.name} 开始弧度: $start 结束弧度: $endAngle");
       if (angle >= start &&
           angle < endAngle &&
-          isInRange(distanceToCenter(tapDownPos, size), size)) {
+          isInRange(distanceToCenter(tapDownPos))) {
         return PiePart(start, sweep, data.color);
       }
       start = endAngle;
@@ -69,9 +73,8 @@ class PieChartsPainter extends CustomPainter {
   }
 
   getTapAngle(Size size) {
-    var center = getCenter(size);
     var angle =
-        math.atan2(tapDownPos.dy - center.dy, tapDownPos.dx - center.dy);
+        math.atan2(tapDownPos.dy - _center.dy, tapDownPos.dx - _center.dy);
     // debugPrint("点击点与中心点夹角: ${angle * (180 / math.pi)} 弧度：$angle");
     if (angle < -math.pi / 2) {
       //如果夹角小于-90度（同时大于-180度）， 需要用360度-夹角的绝对值获得真实的夹角
@@ -87,6 +90,7 @@ class PieChartsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    _initValues(size);
     drawCircle(canvas, size);
     drawAscend(canvas, size);
   }
@@ -94,10 +98,14 @@ class PieChartsPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 
+  void _initValues(Size size) {
+    _center = getCenter(size);
+    _radius = calRadius(size);
+  }
+
   void drawCircle(Canvas canvas, Size size) {
     var startAngle = _globalAngle;
     // 确定圆的半径
-    final double radius = calRadius(size);
     // 定义中心点
     //绘制线条的宽度
     final double strokeWidth = _strokeWidth;
@@ -112,7 +120,7 @@ class PieChartsPainter extends CustomPainter {
       var sweep = getSweepAngle(data.flex);
 
       // 使用 Canvas 的 drawCircle 绘制
-      canvas.drawArc(Rect.fromCircle(center: getCenter(size), radius: radius),
+      canvas.drawArc(Rect.fromCircle(center: _center, radius: _radius),
           startAngle, sweep, false, paint);
       startAngle += sweep;
     }
@@ -131,7 +139,7 @@ class PieChartsPainter extends CustomPainter {
       ..color = part.color
       ..strokeWidth = _strokeWidth + (itemAscendValue * 10);
     canvas.drawArc(
-        Rect.fromCircle(center: getCenter(size), radius: calRadius(size)),
+        Rect.fromCircle(center: _center, radius: _radius),
         part.startAngle,
         part.sweepAngle,
         false,
