@@ -21,8 +21,6 @@ class PieData {
   double flex;
   final Color color;
   final String name;
-
-
   PieData(this.flex, this.name, this.color);
 
   @override
